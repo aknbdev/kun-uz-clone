@@ -11,13 +11,9 @@ import uz.isystem.KunUzClone.user.User;
 import uz.isystem.KunUzClone.user.UserDto;
 import uz.isystem.KunUzClone.user.UserRepository;
 import uz.isystem.KunUzClone.user.UserService;
-import uz.isystem.KunUzClone.userType.UserTypeService;
 import uz.isystem.KunUzClone.www.exception.ApiRequestException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,22 +21,19 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService, UserDetailsService {
     private final ModelMapper mapper;
     private final UserRepository userRepository;
-    private final UserTypeService userTypeService;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = getEntityByUsername(username);
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(user.getUserType().getName()));
-
+        user.getUserTypes().stream().map(userType -> new SimpleGrantedAuthority(userType.getName()));
         return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), user.getStatus(), true, true, true, authorities);
     }
 
     @Override
     public void create(UserDto userDto) {
         User user = mapper.map(userDto, User.class);
-        userTypeService.getOne(user.getUserTypeId());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setCreatedAt(LocalDateTime.now());
         user.setStatus(true);
@@ -62,8 +55,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public void update(Integer id, UserDto userDto) {
-        User old = getEntity(id);
-        old = mapper.map(userDto, User.class);
+        getEntity(id);
+        User old = mapper.map(userDto, User.class);
         userRepository.save(old);
     }
 
